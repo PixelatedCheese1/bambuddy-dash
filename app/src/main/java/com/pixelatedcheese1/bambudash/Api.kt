@@ -32,7 +32,11 @@ private fun listOf(t: String, key: String): List<JSONObject> {
 class BambuddyApi(base: String, key: String) {
     class HttpErr(val code: Int, msg: String) : Exception("HTTP $code $msg".trim())
 
-    private val root = base.trim().trimEnd('/') + "/api/v1"
+    // Accept "192.168.1.5:8000", "http://host:8000/", or a pasted ".../api/v1" or page URL: keep only scheme://host:port
+    private val root = base.trim().let { b ->
+        val u = java.net.URI(if ("://" in b) b else "http://$b")
+        "${u.scheme}://${u.authority}/api/v1"
+    }
     val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS)
         .addInterceptor { it.proceed(it.request().newBuilder().header("X-API-Key", key.trim()).build()) }
@@ -43,7 +47,7 @@ class BambuddyApi(base: String, key: String) {
             val body = if (method == "GET") null else json.toRequestBody("application/json".toMediaType())
             http.newCall(Request.Builder().url(root + path).method(method, body).build()).execute().use { r ->
                 val t = r.body?.string().orEmpty()
-                if (!r.isSuccessful) throw HttpErr(r.code, "on $path" + if (r.code == 403) " (key lacks permission)" else "")
+                if (!r.isSuccessful) throw HttpErr(r.code, "on ${r.request.url}" + if (r.code == 403) " (key lacks permission)" else "")
                 t
             }
         }
@@ -51,7 +55,10 @@ class BambuddyApi(base: String, key: String) {
     fun coverUrl(id: Int, tag: String) = "$root/printers/$id/cover?t=${tag.hashCode()}"
     fun thumbUrl(archiveId: Int) = "$root/archives/$archiveId/thumbnail"
 
-    suspend fun printerIds() = listOf(call("/printers"), "printers").map { it.getInt("id") }
+    suspend fun printerIds(): List<Int> {
+        val t = try { call("/printers") } catch (e: HttpErr) { if (e.code == 404) call("/printers/") else throw e }
+        return listOf(t, "printers").map { it.getInt("id") }
+    }
 
     suspend fun status(id: Int): Status {
         val j = JSONObject(call("/printers/$id/status"))
