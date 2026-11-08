@@ -96,6 +96,7 @@ class Vm(app: Application) : AndroidViewModel(app) {
 }
 
 class MainActivity : ComponentActivity() {
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -183,17 +184,17 @@ fun Dash(vm: Vm) {
                             PState.PAUSED -> vm.act("resume")
                             else -> vm.recents.firstOrNull()?.let { r -> ask = startMsg(r) to { vm.start(r) } } ?: run { menu = true }
                         }
-                    }, Modifier.weight(1.6f).fillMaxHeight(), shapes = ButtonDefaults.shapes()) {
+                    }, modifier = Modifier.weight(1.6f).fillMaxHeight(), shapes = ButtonDefaults.shapes()) {
                         Icon(if (s.state == PState.PRINTING) Icons.Filled.Pause else Icons.Filled.PlayArrow, null)
                         Spacer(Modifier.width(8.dp))
                         Text(when (s.state) { PState.PRINTING -> "Pause"; PState.PAUSED -> "Resume"; else -> "Start" })
                     }
-                    Button(onClick = { ask = "Stop this print?" to { vm.act("stop") } }, Modifier.weight(1f).fillMaxHeight(),
+                    Button(onClick = { ask = "Stop this print?" to { vm.act("stop") } }, modifier = Modifier.weight(1f).fillMaxHeight(),
                         enabled = !idle, shapes = ButtonDefaults.shapes(),
                         colors = ButtonDefaults.buttonColors(containerColor = cs.errorContainer, contentColor = cs.onErrorContainer)) {
                         Icon(Icons.Filled.Stop, null); Spacer(Modifier.width(8.dp)); Text("Stop")
                     }
-                    FilledTonalIconButton(onClick = { vm.loadRecents(); menu = true }, Modifier.size(80.dp), shapes = IconButtonDefaults.shapes(),
+                    FilledTonalIconButton(onClick = { vm.loadRecents(); menu = true }, modifier = Modifier.size(80.dp), shapes = IconButtonDefaults.shapes(),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = cs.tertiaryContainer, contentColor = cs.onTertiaryContainer)) {
                         Icon(Icons.Filled.History, "Recent prints")
                     }
